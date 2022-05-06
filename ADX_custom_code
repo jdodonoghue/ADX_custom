@@ -1,0 +1,114 @@
+// Created by: John O'Donoghue
+// Github: https://github.com/jdodonoghue/ADX_custom.git
+
+{ Search Tag: WA-ADX }
+
+{ This code plots J. Welles Wilder's ADX indicator. }
+
+inputs: 
+	int ADXLength( 14) [
+		DisplayName = "ADXLength", 
+		ToolTip = "Average Directional Movement Index Length."],
+	
+	int SmoothingLength( 10) [
+		DisplayName = "ADXLength", 
+		ToolTip = "Average Directional Movement Index Length."],
+		
+	double TriggerLevel(    20 ) [
+		DisplayName = "TriggerLevel", 
+		ToolTip = "Enter indicator level that will cause an alert."],
+	
+	bool UsePlotColoring(    true ) [
+		DisplayName = "UsePlotColoring", 
+		ToolTip = "Enter true to color indicator plot based on TriggerLevel;  enter false to not color plot."],
+	
+	int AboveTrigColor(    MyColors( "DodgerBlue" ) ) [
+		DisplayName = "AboveTrigColor", 
+		ToolTip = "Above Trigger Color.  Enter color to use when indicator is above TriggerLevel."],
+	
+	int BelowTrigColor(    Red ) [
+		DisplayName = "BelowTrigColor", 
+		ToolTip = "Below Trigger Color.  Enter color to use when indicator is below TriggerLevel."],
+	
+	int EqualTrigColor(    MyColors( "Teal" ) ) [
+		DisplayName = "EqualTrigColor", 
+		ToolTip = "Equal Trigger Color.  Enter color to use when indicator is equal to TriggerLevel."],
+	
+	bool ColorCellBGOnAlert(    true ) [
+		DisplayName = "ColorCellBGOnAlert", 
+		ToolTip = "Color Cell Background On Alert.  Enter true to color RadarScreen cell background when alert occurs;  enter false to not color cell background."],
+	
+	int BackgroundColorAlertCell(    DarkGray ) [
+		DisplayName = "BackgroundColorAlertCell", 
+		ToolTip = "Enter the color to use for RadarScreen cell background when alert occurs."];
+	
+variables:
+	double ADXValue( 0 ),
+	intrabarpersist bool Alerting1( false ),
+	intrabarpersist bool Alerting2( false );
+
+ADXValue = ADX( ADXLength );
+
+Plot1( ADXValue, !( "ADX" ) );
+Plot2( TriggerLevel, !( "TrigLevel" ) );
+Plot3( XAverage(ADXValue, SmoothingLength), !( "XMA" ) );
+
+if UsePlotColoring then
+begin
+	switch( ADXValue )
+	begin
+		case > TriggerLevel:
+			SetPlotColor( 1, AboveTrigColor );
+		
+		case < TriggerLevel:
+			SetPlotColor( 1, BelowTrigColor );
+		
+		case TriggerLevel:
+		  	SetPlotColor( 1, EqualTrigColor );
+	end;
+end;
+	
+{ alert criteria }
+if ADXValue > TriggerLevel and ADXValue[1] < TriggerLevel then
+begin
+	{ this variable is used below, to control cell background coloring }
+	Alerting1 = true;
+	Alert( !( "ADX crossed over trigger level" ) );
+end
+else if ADXValue < TriggerLevel and ADXValue[1] > TriggerLevel then
+begin
+	Alerting1 = true;
+	Alert( !( "ADX crossed under trigger level" ) );
+end
+else
+begin
+	Alerting1 = false;
+end;
+
+		
+{ Additional optional alert criteria:
+
+if ADXValue > ADXValue[1] and ADXValue[1] <= ADXValue[2] then
+begin
+	Alerting2 = true;
+	Alert( !( "ADX turning up" ) );
+end
+else if ADXValue < ADXValue[1] and ADXValue[1] >= ADXValue[2] then
+begin
+	Alerting2 = true;
+	Alert( !( "ADX turning down" ) );	
+end
+else
+begin
+	Alerting2 = false;
+end;
+}
+
+{ cell background coloring, see input ColorCellBGOnAlert, above }
+if ColorCellBGOnAlert and ( Alerting1 or Alerting2 ) then	
+	SetPlotBGColor( 1, BackgroundColorAlertCell );
+
+		
+{ ** Copyright © TradeStation Technologies, Inc.  All Rights Reserved ** 
+  ** TradeStation reserves the right to modify or overwrite this analysis technique 
+     with each release. ** }
